@@ -18,11 +18,8 @@ int main()
 {
 	SuperMarket	market;
 	
-	if (!initSuperMarket(&market,SUPER_FILE_NAME,CUSTOMER_FILE_NAME))
-	{
-		printf("error init  Super Market");
-		return 0;
-	}
+	CHECK_MSG_RETURN_0(initSuperMarketCompressed(&market, SUPER_FILE_NAME_COMPRESS, CUSTOMER_FILE_NAME), "error init  Super Market");
+//CHECK_MSG_RETURN_0(initSuperMarket(&market, SUPER_FILE_NAME, CUSTOMER_FILE_NAME), "error init  Super Market")
 	
 	int option;
 	int stop = 0;
