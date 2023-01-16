@@ -134,3 +134,38 @@ void printMessage(const char* first, ...) {
 	va_end(args);
 	printf("\n");
 }
+
+void encodeBarcode(char* barcode)
+{
+
+	int i;
+	for (i = 0; i < 7; i++) {
+		if (barcode[i] < 10) {
+			barcode[i] += 48;
+		}
+		else {
+			barcode[i] += 55;
+		}
+	}
+}
+
+void decodeBarcode(char* barcode)
+{
+	int i;
+	for (i = 0; i < 7; i++) {
+		if (isdigit(barcode[i])) {
+			barcode[i] -= 48;
+		}
+		else {
+			barcode[i] -= 55;
+		}
+	}
+}
+
+int getNumbersAfterDot(float num)
+{
+	if (num < 0.1){
+		return (int)num * 100;
+	}
+	return (int)num * 10;
+}

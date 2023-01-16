@@ -86,8 +86,9 @@ int main()
 
 	handleCustomerStillShoppingAtExit(&market);
 
-	if (!saveSuperMarketToFile(&market, SUPER_FILE_NAME, CUSTOMER_FILE_NAME))
-		printf("Error saving supermarket to file\n");
+	//if (!saveSuperMarketToFile(&market, SUPER_FILE_NAME, CUSTOMER_FILE_NAME))
+		//printf("Error saving supermarket to file\n");
+	saveSuperMarketToFileCompressed(&market, SUPER_FILE_NAME_COMPRESS, CUSTOMER_FILE_NAME);
 
 	freeMarket(&market);
 

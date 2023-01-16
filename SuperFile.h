@@ -18,6 +18,8 @@ int		loadProductFromTextFile(SuperMarket* pMarket, const char* fileName);
 int		saveSuperMarketToFileCompressed(const SuperMarket* pMarket, const char* fileName,
 	const char* customersFileName);
 
-int saveAdressToFileCompressed(const SuperMarket* pMarket, const char* fileName);
+int saveAdressToFileCompressed(const SuperMarket* pMarket, FILE* fileName);
 
-int saveProductToFileCompressed(const Product* pProd, const char* fileName);
+int saveProductToFileCompressed(const Product* pProd, FILE* fileName);
+
+int saveProductArrayToFileCompressed(FILE* file, LIST* pList, int count);

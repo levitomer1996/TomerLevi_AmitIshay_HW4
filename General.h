@@ -16,5 +16,8 @@ int		getPositiveInt(const char* msg);
 int		countCharInString(const char* str, char tav);
 int		checkEmptyString(char* str);
 void	printMessage(const char* first, ...);
+void	encodeBarcode(char* barcode);
+void	decodeBarcode(char* barcode);
+int		getNumbersAfterDot(float num);
 #endif
 

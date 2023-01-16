@@ -184,22 +184,27 @@ int		loadProductFromTextFile(SuperMarket* pMarket, const char* fileName)
 
 int saveSuperMarketToFileCompressed(const SuperMarket* pMarket, const char* fileName, const char* customersFileName)
 {
+	FILE* fp;
+	fp = fopen(fileName, "wb");
+	CHECK_MSG_RETURN_0(fp, "Falied opening file");
 	BYTE data[2] = { 0 };
 	int numOfProd = getNumOfProductsInList(pMarket);
-	int superMarketNameLen = sizeof(pMarket->name);
+	int superMarketNameLen = strlen(pMarket->name);
 	data[0] = numOfProd >> 2;
-	data[1] = (numOfProd & 0x3) << 6 | superMarketNameLen;
-	if (fwrite(&data, sizeof(BYTE), 2, fileName) != 2)
+	data[1] = (numOfProd & 0x3) << 6 | superMarketNameLen&0x3F;
+	if (fwrite(&data, sizeof(BYTE), 2, fp) != 2)
 		return 0;
-	if (fwrite(pMarket->name, sizeof(char), superMarketNameLen, fileName) != superMarketNameLen)
+	if (fwrite(pMarket->name, sizeof(char), superMarketNameLen, fp) != superMarketNameLen)
 		return 0;
 
 	//save Adress
-
+	
+	CHECK_RETURN_0(saveAdressToFileCompressed(pMarket, fp));
+	CHECK_RETURN_0(saveProductArrayToFileCompressed(fp, &pMarket->productList, getNumOfProductsInList(pMarket)));
 	return 1;
 }
 
-int saveAdressToFileCompressed(const SuperMarket* pMarket, const char* fileName)
+int saveAdressToFileCompressed(const SuperMarket* pMarket, FILE* fileName)
 {
 	BYTE houseNumber = pMarket->location.num;
 	if (fwrite(&houseNumber, sizeof(BYTE), 1, fileName) != 1)
@@ -217,14 +222,57 @@ int saveAdressToFileCompressed(const SuperMarket* pMarket, const char* fileName)
 	return 1;
 }
 
-int saveProductToFileCompressed(const Product* pProd, const char* fileName)
+int saveProductToFileCompressed(const Product* pProd, FILE* fileName)
 {
-	BYTE data[3] = { 0 };
+	
+	BYTE data1[6] = { 0 };
 	BYTE data2[3] = { 0 };
-	unsigned int barcode =(unsigned int) pProd->barcode;
-	data[0] = ((barcode >> 2) & 0xFF)| ((barcode>>6) & 0x3);
-	data[1] = ((barcode >> 8) & 0xF) << 4 | ((barcode >> 12) & 0xF);
-	data[2] = (((barcode >> 14) & 0x3) << 6) | ((barcode >> 20) & 0x3F);
+	//Make the barcode available for compress
+	char* barcode = pProd->barcode;
+	int name_len = strlen(pProd->name);
+	
+	decodeBarcode(barcode);
+	//barcode type and name length.
+	data1[0] = (barcode[0] << 2) |( barcode[1] >> 4);
+	data1[1] = ((barcode[1]&0xF) << 4) | (barcode[2] >> 2);
+	data1[2] = ((barcode[2]& 0x3) << 6) | barcode[3];
+	data1[3] = (barcode[4] << 2 )|| (barcode[5] >> 4);
+	data1[4] = ((barcode[5] & 0xF) << 4) | (barcode[6] >> 2);
+	data1[5] = ((barcode[6] & 0x3) << 6) | ((name_len & 0xF) << 2) | (pProd->type & 0x3);
 
-	return 0;
+//Count and price
+	int integerPrice = (int) pProd->price;
+	float decimalPrice = pProd->price - integerPrice;
+	int afterDotPrice = getNumbersAfterDot(decimalPrice);
+	data2[0] = pProd->count;
+	data2[1] = ((afterDotPrice&0x7F) << 1) | ((integerPrice& 0x1));
+	data2[2] = integerPrice & 0xFF;
+	return 1;
 }
+
+int saveProductArrayToFileCompressed(FILE* file, LIST* pList, int count)
+{
+
+	if (!file || !pList)
+		return 0;
+	if (fwrite(&count, sizeof(int), 1, file) != 1)
+	{
+		fclose(file);
+		return 0;
+	}
+	if (count > 0) {
+		NODE* temp = pList->head.next;
+		Product* tempP = temp->key;
+
+		while (temp != NULL) {
+
+			if (!saveProductToFileCompressed(temp->key, file))
+			{
+				CLOSE_RETURN_0(file);
+			}
+			temp = temp->next;
+		}
+	}
+	return 1;
+}
+
