@@ -195,8 +195,6 @@ int saveSuperMarketToFileCompressed(const SuperMarket* pMarket, const char* file
 		return 0;
 
 	//save Adress
-	if (!saveAdressToFileCompressed(pMarket, fileName))
-		return 0; 
 
 	return 1;
 }
