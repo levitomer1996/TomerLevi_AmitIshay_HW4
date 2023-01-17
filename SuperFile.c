@@ -233,6 +233,7 @@ int saveProductToFileCompressed(const Product* pProd, FILE* fileName)
 	int name_len = strlen(pProd->name);
 	
 	decodeBarcode(barcode);
+	
 	//barcode type and name length.
 	data1[0] = (barcode[0] << 2) |( barcode[1] >> 4);
 	data1[1] = ((barcode[1]&0xF) << 4) | (barcode[2] >> 2);
@@ -240,15 +241,20 @@ int saveProductToFileCompressed(const Product* pProd, FILE* fileName)
 	data1[3] = (barcode[4] << 2 )|| (barcode[5] >> 4);
 	data1[4] = ((barcode[5] & 0xF) << 4) | (barcode[6] >> 2);
 	data1[5] = ((barcode[6] & 0x3) << 6) | ((name_len & 0xF) << 2) | (pProd->type & 0x3);
+	
 	if (fwrite(&data1, sizeof(BYTE), 6, fileName) != 6)
+		return 0;
+
+	if (fwrite(pProd->name, sizeof(char), name_len, fileName) != name_len)
 		return 0;
 //Count and price
 	int integerPrice = (int) pProd->price;
-	float decimalPrice = pProd->price - integerPrice;
-	int afterDotPrice = getNumbersAfterDot(decimalPrice);
-	data2[0] = pProd->count;
-	data2[1] = ((afterDotPrice&0x7F) << 1) | ((integerPrice& 0x1));
+	int priceAfterDot = (int)((pProd->price - integerPrice) * 100);
+	data2[0] = pProd->count&0xFF;
+	data2[1] = ((priceAfterDot) << 1) | ((integerPrice >> 8));
 	data2[2] = integerPrice & 0xFF;
+	
+
 	if (fwrite(&data2, sizeof(BYTE), 3, fileName) != 3)
 		return 0;
 	return 1;
@@ -265,16 +271,14 @@ int saveProductArrayToFileCompressed(FILE* file, LIST* pList, int count)
 		return 0;
 	}
 	if (count > 0) {
-		NODE* temp = pList->head.next;
-		Product* tempP = temp->key;
-
-		while (temp != NULL) {
-
-			if (!saveProductToFileCompressed(temp->key, file))
-			{
-				CLOSE_RETURN_0(file);
-			}
+		NODE* tmp;
+		tmp = pList->head.next;
+		while (tmp != NULL)
+		{
+			saveProductToFileCompressed(tmp->key, file);
+			tmp = tmp->next;
 		}
+	}
 	return 1;
 }
 
@@ -294,6 +298,7 @@ int initSuperMarketCompressed(SuperMarket* pMarket, const char* fileName, const 
 	pMarket->name[superMarketNameLen] = '\0';
 	CHECK_RETURN_0(readAdressFromFileCompressed(pMarket, fp));
 	CHECK_RETURN_0(readeProductArrayFromFileCompressed(fp, pMarket));
+	fclose(fp);
 	return 1;
 }
 
@@ -324,22 +329,25 @@ int readProductFromFileCompressed(Product* pProd, FILE* fileName)
 {
 	BYTE data1[6] = { 0 };
 	BYTE data2[3] = { 0 };
-
+	char* barcode = malloc(sizeof(char) * 8);
 	if (fread(&data1, sizeof(BYTE), 6, fileName) != 6)
 		return 0;
 
 	// Extract barcode type and name length
-	pProd->barcode[0] = data1[0] >> 2;
-	pProd->barcode[1] = ((data1[0] & 0x3) << 4) | (data1[1] >> 4);
-	pProd->barcode[2] = ((data1[1] & 0xF) << 2) | (data1[2] >> 6);
-	pProd->barcode[3] = data1[2] & 0x3F;
-	pProd->barcode[4] = data1[3] >> 2;
-	pProd->barcode[5] = ((data1[3] & 0x3) << 4) | (data1[4] >> 4);
-	pProd->barcode[6] = ((data1[4] & 0xF) << 2) | (data1[5] >> 6);
+	barcode[0] = data1[0] >> 2;
+	barcode[1] = ((data1[0] & 0x3) << 4) | (data1[1] >> 4);
+	barcode[2] = ((data1[1] & 0xF) << 2) | (data1[2] >> 6);
+	barcode[3] = data1[2] & 0x3F;
+	barcode[4] = data1[3] >> 2;
+	barcode[5] = ((data1[3] & 0x3) << 4) | (data1[4] >> 4);
+	barcode[6] = ((data1[4] & 0xF) << 2) | (data1[5] >> 6);
 	int name_len = data1[5] & 0xF;
 	pProd->type = data1[5] & 0x3;
-	pProd->barcode[7] = '\0';
-	encodeBarcode(pProd->barcode);
+	barcode[7] = '\0';
+	encodeBarcode(barcode);
+	printf(barcode);
+	strcpy(pProd->barcode, barcode);
+	printf("\n");
 	// Read the name of the product
 	if (fread(pProd->name, sizeof(char), name_len, fileName) != name_len)
 		return 0;
@@ -349,10 +357,11 @@ int readProductFromFileCompressed(Product* pProd, FILE* fileName)
 		return 0;
 
 	// Extract count and price
-	pProd->count = data2[0];
-	int integerPrice = (data2[1] & 0x1) | (data2[2] & 0xFF);
-	int afterDotPrice = (data2[1] >> 1) & 0x7F;
-	pProd->price = integerPrice + (float)afterDotPrice / 100;
+	pProd->count = data2[0]  & 0xFF;
+	int integerPrice = ((data2[1] & 0x1)<< 8) | data2[2];
+	float priceAfterDot = (data2[1] >> 1) / 100;
+	printf("integer - %d price after dot - %f \n", integerPrice, priceAfterDot);
+	pProd->price = integerPrice + priceAfterDot;
 
 	return 1;
 }
@@ -367,7 +376,7 @@ int readeProductArrayFromFileCompressed(FILE* file, SuperMarket* pMarket)
 	{
 		CLOSE_RETURN_0(file);
 	}
-
+	printf(" Count - %d\n", count);
 	for (int i = 0; i < count - 1; i++)
 	{
 		Product* pProd = (Product*)malloc(sizeof(Product));
