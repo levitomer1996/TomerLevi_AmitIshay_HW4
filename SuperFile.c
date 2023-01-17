@@ -274,9 +274,7 @@ int saveProductArrayToFileCompressed(FILE* file, LIST* pList, int count)
 			{
 				CLOSE_RETURN_0(file);
 			}
-			temp = temp->next;
 		}
-	}
 	return 1;
 }
 
