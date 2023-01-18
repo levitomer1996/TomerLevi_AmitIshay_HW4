@@ -140,23 +140,27 @@ void encodeBarcode(char* barcode)
 
 	int i;
 	for (i = 0; i < 7; i++) {
-		if (barcode[i] < 10) {
+		
+		if (isdigit((barcode[i]) + 48)) {
 			barcode[i] += 48;
 		}
 		else {
+
 			barcode[i] += 55;
 		}
+		
 	}
 }
 
 void decodeBarcode(char* barcode)
 {
-	int i;
-	for (i = 0; i < 7; i++) {
+	for (int i = 0; i < 7; i++) {
 		if (isdigit(barcode[i])) {
+			
 			barcode[i] -= 48;
 		}
 		else {
+			
 			barcode[i] -= 55;
 		}
 	}

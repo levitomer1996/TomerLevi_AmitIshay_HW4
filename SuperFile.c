@@ -228,19 +228,24 @@ int saveProductToFileCompressed(const Product* pProd, FILE* fileName)
 	
 	BYTE data1[6] = { 0 };
 	BYTE data2[3] = { 0 };
+	BYTE data3[6] = { 0 };
 	//Make the barcode available for compress
 	char* barcode = pProd->barcode;
+
 	int name_len = strlen(pProd->name);
 	
 	decodeBarcode(barcode);
 	
 	//barcode type and name length.
-	data1[0] = (barcode[0] << 2) |( barcode[1] >> 4);
-	data1[1] = ((barcode[1]&0xF) << 4) | (barcode[2] >> 2);
-	data1[2] = ((barcode[2]& 0x3) << 6) | barcode[3];
-	data1[3] = (barcode[4] << 2 )|| (barcode[5] >> 4);
+	data1[0] = ((barcode[0]&0x3F) << 2) |(( barcode[1] >> 4)&0x3);
+	data1[1] = ((barcode[1]&0xF) << 4) | ((barcode[2] >> 2)&0xF);
+	data1[2] = ((barcode[2] & 0x3) << 6) | (barcode[3]&0x3F);
+	
+	data1[3] = ((barcode[4]&0x3F) << 2 ) | ((barcode[5] >> 4)&0x3);
 	data1[4] = ((barcode[5] & 0xF) << 4) | (barcode[6] >> 2);
 	data1[5] = ((barcode[6] & 0x3) << 6) | ((name_len & 0xF) << 2) | (pProd->type & 0x3);
+
+
 	
 	if (fwrite(&data1, sizeof(BYTE), 6, fileName) != 6)
 		return 0;
@@ -296,8 +301,12 @@ int initSuperMarketCompressed(SuperMarket* pMarket, const char* fileName, const 
 	if (fread(pMarket->name, sizeof(char), superMarketNameLen, fp) != superMarketNameLen)
 		return 0;
 	pMarket->name[superMarketNameLen] = '\0';
+	L_init(&pMarket->productList);
 	CHECK_RETURN_0(readAdressFromFileCompressed(pMarket, fp));
 	CHECK_RETURN_0(readeProductArrayFromFileCompressed(fp, pMarket));
+
+	pMarket->customerArr = loadCustomerFromTextFile(customersFileName, &pMarket->customerCount);
+	CHECK_RETURN_0(pMarket->customerArr);
 	fclose(fp);
 	return 1;
 }
@@ -329,39 +338,37 @@ int readProductFromFileCompressed(Product* pProd, FILE* fileName)
 {
 	BYTE data1[6] = { 0 };
 	BYTE data2[3] = { 0 };
-	char* barcode = malloc(sizeof(char) * 8);
+	int name_len;
+
 	if (fread(&data1, sizeof(BYTE), 6, fileName) != 6)
 		return 0;
+	pProd->barcode[0] = data1[0] >> 2;
+	pProd->barcode[1] = (data1[0] & 0x3) << 4 | data1[1] >> 4;
+	pProd->barcode[2] = ((data1[1] & 0xF) << 2) | ((data1[2] >> 6) & 0x3);
+	pProd->barcode[3] = data1[2] & 0x3F;
+	pProd->barcode[4] = (data1[3] >> 2) & 0x3F;
+	pProd->barcode[5] = (data1[3] & 0x3) << 4 | ((data1[4] >> 4) & 0xF);
+	pProd->barcode[6] = (data1[4] & 0xF) << 2 | (data1[5] >> 6) & 0x3;
+	pProd->barcode[7] = '\0';
 
-	// Extract barcode type and name length
-	barcode[0] = data1[0] >> 2;
-	barcode[1] = ((data1[0] & 0x3) << 4) | (data1[1] >> 4);
-	barcode[2] = ((data1[1] & 0xF) << 2) | (data1[2] >> 6);
-	barcode[3] = data1[2] & 0x3F;
-	barcode[4] = data1[3] >> 2;
-	barcode[5] = ((data1[3] & 0x3) << 4) | (data1[4] >> 4);
-	barcode[6] = ((data1[4] & 0xF) << 2) | (data1[5] >> 6);
-	int name_len = data1[5] & 0xF;
+	name_len = (data1[5] >> 2) & 0xF;
 	pProd->type = data1[5] & 0x3;
-	barcode[7] = '\0';
-	encodeBarcode(barcode);
-	printf(barcode);
-	strcpy(pProd->barcode, barcode);
-	printf("\n");
-	// Read the name of the product
+
+	encodeBarcode(pProd->barcode);
+	
 	if (fread(pProd->name, sizeof(char), name_len, fileName) != name_len)
 		return 0;
 	pProd->name[name_len] = '\0';
 
 	if (fread(&data2, sizeof(BYTE), 3, fileName) != 3)
 		return 0;
+	
+	pProd->count = data2[0];
+	float agorots = (float)((data2[1] >> 1) & 0x7F) / 100;
 
-	// Extract count and price
-	pProd->count = data2[0]  & 0xFF;
-	int integerPrice = ((data2[1] & 0x1)<< 8) | data2[2];
-	float priceAfterDot = (data2[1] >> 1) / 100;
-	printf("integer - %d price after dot - %f \n", integerPrice, priceAfterDot);
-	pProd->price = integerPrice + priceAfterDot;
+	int shekel = ((data2[1] & 0x1)<<8) | ((data2[2] & 0xFF));
+	pProd->price = agorots + shekel;
+	
 
 	return 1;
 }
@@ -377,7 +384,7 @@ int readeProductArrayFromFileCompressed(FILE* file, SuperMarket* pMarket)
 		CLOSE_RETURN_0(file);
 	}
 	printf(" Count - %d\n", count);
-	for (int i = 0; i < count - 1; i++)
+	for (int i = 0; i < count; i++)
 	{
 		Product* pProd = (Product*)malloc(sizeof(Product));
 		CHECK_RETURN_0(pProd);
@@ -387,7 +394,8 @@ int readeProductArrayFromFileCompressed(FILE* file, SuperMarket* pMarket)
 			FREE_CLOSE_FILE_RETURN_0(pProd, file);
 		}
 		printProduct(pProd);
-		CHECK_RETURN_0(L_insert(&pMarket->productList.head, pProd, compareProductByBarcode));
+		CHECK_RETURN_0(insertNewProductToList(&pMarket->productList, pProd));
+		
 	}
 
 	return 1;
