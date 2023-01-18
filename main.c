@@ -14,9 +14,10 @@
 int menu();
 
 
-int main()
+int main(int argc, char* argv[])
 {
 	SuperMarket	market;
+	
 	
 	CHECK_MSG_RETURN_0(initSuperMarketCompressed(&market, SUPER_FILE_NAME_COMPRESS, CUSTOMER_FILE_NAME), "error init  Super Market");
 	//CHECK_MSG_RETURN_0(initSuperMarket(&market, SUPER_FILE_NAME, CUSTOMER_FILE_NAME), "error init  Super Market")
@@ -106,5 +107,20 @@ int menu()
 	char tav;
 	scanf("%c", &tav);
 	return option;
+}
+
+char* paramsMain(int argc, char* argv[], int* isCompressed)
+{
+	int numOfVars = 0;
+	*isCompressed = 0;
+	numOfVars += sscanf(argv[1], "%d", &(*isCompressed));
+	char* file = getDynStr(argv[2]);
+	if (file != NULL) {
+		numOfVars++;
+	}
+	if (numOfVars != 2) {
+		return NULL;
+	}
+	return file;
 }
 

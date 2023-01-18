@@ -14,7 +14,7 @@
 
 
 int		initSuperMarket(SuperMarket* pMarket, const char* fileName,
-					const char* customersFileName)
+					const char* customersFileName, int isCompressed)
 {
 	pMarket->customerCount = 0;
 	pMarket->customerArr = NULL;

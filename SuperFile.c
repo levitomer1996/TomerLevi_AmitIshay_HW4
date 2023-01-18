@@ -194,6 +194,7 @@ int saveSuperMarketToFileCompressed(const SuperMarket* pMarket, const char* file
 	data[1] = (numOfProd & 0x3) << 6 | superMarketNameLen&0x3F;
 	if (fwrite(&data, sizeof(BYTE), 2, fp) != 2)
 		return 0;
+	
 	if (fwrite(pMarket->name, sizeof(char), superMarketNameLen, fp) != superMarketNameLen)
 		return 0;
 
@@ -306,7 +307,7 @@ int initSuperMarketCompressed(SuperMarket* pMarket, const char* fileName, const 
 	CHECK_RETURN_0(readeProductArrayFromFileCompressed(fp, pMarket));
 
 	pMarket->customerArr = loadCustomerFromTextFile(customersFileName, &pMarket->customerCount);
-	CHECK_RETURN_0(pMarket->customerArr);
+	CHECK_RETURN_0(pMarket->customerArr); 
 	fclose(fp);
 	return 1;
 }

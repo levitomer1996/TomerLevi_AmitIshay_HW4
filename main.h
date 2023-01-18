@@ -17,3 +17,4 @@ static const char* menuStrings[eNofOptions] = { "Show SuperMarket", "Add Product
 								"Sort Customers", "Search an Customer","Print Product By Type" };
 
 int menu();
+char* paramsMain(int argc, char* argv[], int* isCompressed);
