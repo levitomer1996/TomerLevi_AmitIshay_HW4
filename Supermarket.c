@@ -16,11 +16,18 @@
 int		initSuperMarket(SuperMarket* pMarket, const char* fileName,
 					const char* customersFileName, int isCompressed)
 {
+	if (isCompressed == 1) {
+		if (initSuperMarketCompressed(pMarket, fileName, customersFileName) == 1)
+		{
+			printf("Supermarket successfully loaded  compressed from files\n");
+			return 1;
+		}
+	}
 	pMarket->customerCount = 0;
 	pMarket->customerArr = NULL;
 	pMarket->sortOpt = eNone;
 	L_init(&pMarket->productList);
-
+	
 	if (loadSuperMarketFromFile(pMarket, fileName, customersFileName) == 1)
 	{
 		printf("Supermarket successfully loaded from files\n");

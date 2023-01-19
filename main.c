@@ -19,8 +19,9 @@ int main(int argc, char* argv[])
 	SuperMarket	market;
 	
 	
-	CHECK_MSG_RETURN_0(initSuperMarketCompressed(&market, SUPER_FILE_NAME_COMPRESS, CUSTOMER_FILE_NAME), "error init  Super Market");
-	//CHECK_MSG_RETURN_0(initSuperMarket(&market, SUPER_FILE_NAME, CUSTOMER_FILE_NAME), "error init  Super Market")
+	int isCompressed;
+	char* file = paramsMain(argc, argv, &isCompressed);
+	CHECK_MSG_RETURN_0(initSuperMarket(&market, file, CUSTOMER_FILE_NAME, isCompressed), "error init  Super Market")
 	
 	int option;
 	int stop = 0;
@@ -86,7 +87,7 @@ int main(int argc, char* argv[])
 
 	//if (!saveSuperMarketToFile(&market, SUPER_FILE_NAME, CUSTOMER_FILE_NAME))
 		//printf("Error saving supermarket to file\n");
-	saveSuperMarketToFileCompressed(&market, SUPER_FILE_NAME_COMPRESS, CUSTOMER_FILE_NAME);
+	saveSuperMarketToFile(&market,file , CUSTOMER_FILE_NAME,isCompressed);
 
 	freeMarket(&market);
 

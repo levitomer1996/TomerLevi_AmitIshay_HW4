@@ -5,7 +5,7 @@
 
 
 int		saveSuperMarketToFile(const SuperMarket* pMarket, const char* fileName,
-			const char* customersFileName);
+			const char* customersFileName, int isCompressed);
 int		loadSuperMarketFromFile(SuperMarket* pMarket, const char* fileName,
 			const char* customersFileName);
 

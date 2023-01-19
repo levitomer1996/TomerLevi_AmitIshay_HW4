@@ -11,8 +11,12 @@
 
 
 int	saveSuperMarketToFile(const SuperMarket* pMarket, const char* fileName,
-	const char* customersFileName)
+	const char* customersFileName, int isCompressed)
 {
+	if (isCompressed == 1) {
+	saveSuperMarketToFileCompressed(pMarket,fileName,customersFileName);
+	return 1;
+	}
 	FILE* fp;
 	fp = fopen(fileName, "wb");
 	CHECK_MSG_RETURN_0(fp, "Falied opening file");
@@ -184,6 +188,7 @@ int		loadProductFromTextFile(SuperMarket* pMarket, const char* fileName)
 
 int saveSuperMarketToFileCompressed(const SuperMarket* pMarket, const char* fileName, const char* customersFileName)
 {
+	
 	FILE* fp;
 	fp = fopen(fileName, "wb");
 	CHECK_MSG_RETURN_0(fp, "Falied opening file");
@@ -198,8 +203,8 @@ int saveSuperMarketToFileCompressed(const SuperMarket* pMarket, const char* file
 	if (fwrite(pMarket->name, sizeof(char), superMarketNameLen, fp) != superMarketNameLen)
 		return 0;
 
-	//save Adress
 	
+	saveCustomerToTextFile(pMarket->customerArr, pMarket->customerCount, customersFileName);
 	CHECK_RETURN_0(saveAdressToFileCompressed(pMarket, fp));
 	CHECK_RETURN_0(saveProductArrayToFileCompressed(fp, &pMarket->productList, getNumOfProductsInList(pMarket)));
 	CHECK_RETURN_0(fclose(fp));
@@ -384,7 +389,6 @@ int readeProductArrayFromFileCompressed(FILE* file, SuperMarket* pMarket)
 	{
 		CLOSE_RETURN_0(file);
 	}
-	printf(" Count - %d\n", count);
 	for (int i = 0; i < count; i++)
 	{
 		Product* pProd = (Product*)malloc(sizeof(Product));
@@ -394,7 +398,7 @@ int readeProductArrayFromFileCompressed(FILE* file, SuperMarket* pMarket)
 		{
 			FREE_CLOSE_FILE_RETURN_0(pProd, file);
 		}
-		printProduct(pProd);
+
 		CHECK_RETURN_0(insertNewProductToList(&pMarket->productList, pProd));
 		
 	}
